@@ -1,22 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useEffect, useState } from "react";
 import { BookOpen, Gauge, Grid3x3, Shield, Waypoints } from "lucide-react";
 import {
   CHIPS,
-  COST,
   MODELS,
   chipById,
   draftFits,
   modelById,
   modelFits,
 } from "../../lib/fathom/catalog";
-import { forceFlush, forkSession, treeRows, withSlots, type CacheState } from "../../lib/fathom/cache";
 import { residencyCount } from "../../lib/fathom/experts";
-import { judge, POLICY, type ToolName } from "../../lib/fathom/sandbox";
 import { benchmark, seedCache, simulate, type PolicyId, type Simulation } from "../../lib/fathom/simulate";
-import { tokenize } from "../../lib/fathom/text";
-import { TEAM_PROMPT, WORKLOADS, workloadById, type WorkloadId } from "../../lib/fathom/workloads";
-import { Choice, Eyebrow, Stat, cx, fmt } from "./ui";
+import type { CacheState } from "../../lib/fathom/cache";
+import { WORKLOADS, workloadById, type WorkloadId } from "../../lib/fathom/workloads";
+import { Floor } from "./floor";
+import { Bench, Experts, Ledger, Radix, Sandbox, flushHot, forkHarbor, resizeHot } from "./views";
+import { cx } from "./ui";
 
 type View = "floor" | "radix" | "experts" | "sandbox" | "bench" | "ledger";
 
@@ -27,14 +25,6 @@ const VIEWS: { id: View; label: string; icon: typeof Gauge }[] = [
   { id: "sandbox", label: "Sandbox", icon: Shield },
   { id: "bench", label: "Bench", icon: Gauge },
   { id: "ledger", label: "Ledger", icon: BookOpen },
-];
-
-const POLICIES: { id: PolicyId; label: string }[] = [
-  { id: "governor", label: "Governor" },
-  { id: "pld", label: "Lookup" },
-  { id: "mtp1", label: "MTP \u00d71" },
-  { id: "mtp4", label: "MTP \u00d74" },
-  { id: "off", label: "Off" },
 ];
 
 export function FathomApp() {
@@ -55,7 +45,6 @@ export function FathomApp() {
 
   const chip = chipById(chipId);
   const model = modelById(modelId);
-  const workload = workloadById(workloadId);
   const fit = modelFits(model, chip);
   const residentDraft = draftFits(model, chip);
 
@@ -210,9 +199,9 @@ export function FathomApp() {
         {view === "radix" ? (
           <Radix
             cache={cache}
-            onSlots={(slots) => setCache(withSlots(cache, slots))}
-            onFlush={() => setCache(forceFlush(cache))}
-            onFork={() => setCache(forkSession(cache, tokenize(TEAM_PROMPT), `fork-${cache.clock}`, 2).cache)}
+            onSlots={(slots) => setCache(resizeHot(cache, slots))}
+            onFlush={() => setCache(flushHot(cache))}
+            onFork={() => setCache(forkHarbor(cache))}
           />
         ) : null}
         {view === "experts" ? (
